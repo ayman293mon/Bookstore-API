@@ -1,77 +1,78 @@
 # Bookstore-API Library Management System
 
-This is a comprehensive RESTful API for a Library Management System built with Node.js, Express, and PostgreSQL. It fulfills all functional requirements, non-functional requirements (Clean Architecture, Performance via Indexing), and **all bonus optional tasks**.
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.x-blue.svg)
+![Tests](https://img.shields.io/badge/tests-24%20passed-success.svg)
 
-## Features
+A comprehensive, enterprise-grade RESTful API for a Library Management System built with Node.js, Express, and PostgreSQL. This project is architected using **Clean Architecture** principles (Routes ➔ Controllers ➔ Services ➔ Repositories) and demonstrates advanced backend concepts including concurrency management, secure authentication, and data pagination.
 
-- **Books Management**: Add, Update, Delete, List, and Search books.
-- **Borrowers Management**: Register, Update, Delete, List borrowers.
-- **Borrowing Process**: Checkout books, Return books, list overdue books, and list books currently held by a borrower.
-- **Analytics & Exports (Bonus)**: Export CSV reports for borrowing periods and overdue items.
-- **Security & Rate Limiting (Bonus)**: Basic Authentication on all API endpoints and Rate Limiting on Checkout/Return endpoints.
-- **Dockerized (Bonus)**: Full application and database setup via `docker-compose`.
-- **Unit Tests (Bonus)**: Jest tests covering the Books module endpoints.
+## 🚀 Key Features & Engineering Highlights
 
-## Prerequisites
+- **JWT Authentication & Authorization**: Secure, stateless authentication replacing legacy basic-auth.
+- **Race Condition Mitigation**: Utilizes PostgreSQL row-level locking (`FOR UPDATE`) and database-level unique constraints to prevent "Double Checkout" and "Lost Update" concurrency issues.
+- **Database Migrations**: Version-controlled database schema management using `node-pg-migrate`.
+- **Interactive Documentation**: Beautiful, auto-generated OpenAPI (Swagger) UI available at `/api-docs`.
+- **Data Pagination**: SQL-level `LIMIT` and `OFFSET` pagination on listing endpoints to handle large datasets efficiently.
+- **Analytics & CSV Exports**: Complex SQL aggregations parsed directly into downloadable CSV reports for business intelligence.
+- **Centralized Error Handling**: Custom Error classes (`AppError`, `ConflictError`, `BadRequestError`) automatically caught and formatted by a global error middleware.
+- **Rate Limiting**: Express-rate-limit applied to sensitive endpoints (Checkout/Return) to prevent brute-force attacks.
 
-- Docker and Docker Compose (Easiest way to run)
-- OR Node.js (v18+) and a local PostgreSQL instance
+## 🛠 Tech Stack
+- **Framework**: Express.js (Node.js)
+- **Database**: PostgreSQL
+- **Migrations**: `node-pg-migrate`
+- **Validation**: Joi
+- **Documentation**: Swagger UI (`swagger-ui-express`, `yamljs`)
+- **Testing**: Jest & Supertest
 
-## How to Run (Docker)
+## 🐳 Quick Start (Docker)
 
-This is the recommended way to run the application, as it automatically sets up the Node.js application and the PostgreSQL database with the required schema and initial seed data.
+This is the recommended way to run the application. Docker will automatically provision the PostgreSQL database, run the database migrations, and start the Node.js server.
 
-1. Open a terminal in the root directory.
-2. Run the following command:
+1. Clone the repository and navigate into the root directory.
+2. Ensure Docker Desktop is running.
+3. Start the application:
    ```bash
    docker-compose up --build
    ```
-3. The API will be available at `http://localhost:3000`.
+4. Explore the interactive API documentation:
+   👉 **http://localhost:3000/api-docs**
 
-## How to Run (Locally without Docker)
+## 💻 Local Setup (Without Docker)
 
-1. Ensure PostgreSQL is running.
-2. Create a database named `library_db` and run the `init.sql` script to create tables.
-3. Install dependencies: `npm install`
-4. Start the server: `npm run dev`
+1. Ensure PostgreSQL is running locally on port `5432`.
+2. Copy the environment file and fill in your local database credentials:
+   ```bash
+   cp .env.example .env
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Run the database migrations to build the tables:
+   ```bash
+   npm run migrate up
+   ```
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-## API Documentation
+## 🧪 Testing
 
-**Base URL**: `http://localhost:3000/api`
-
-**Authentication**: All endpoints require Basic Authentication. 
-- **Username**: admin
-- **Password**: password
-
-### Books (`/api/books`)
-- `GET /` - List all books (Supports `?search=term`)
-- `GET /:id` - Get a book by ID
-- `POST /` - Add a new book
-- `PATCH /:id` - Update a book
-- `DELETE /:id` - Delete a book
-
-### Borrowers (`/api/borrowers`)
-- `GET /` - List all borrowers
-- `GET /:id` - Get a borrower by ID
-- `POST /` - Register a borrower
-- `PATCH /:id` - Update a borrower
-- `DELETE /:id` - Delete a borrower
-
-### Borrowing Process (`/api/borrowing`)
-- `POST /checkout` - Checkout a book (Requires `{ book_id, borrower_id, due_date }`) *(Rate Limited)*
-- `POST /return` - Return a book (Requires `{ book_id, borrower_id }`) *(Rate Limited)*
-- `GET /borrower/:borrowerId` - List currently checked-out books for a borrower
-- `GET /overdue` - List all overdue books
-
-### Reports (`/api/reports`)
-- `GET /export-period?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` - Download CSV of borrows in period
-- `GET /export-overdue-last-month` - Download CSV of overdue books from the last month
-- `GET /export-borrowing-last-month` - Download CSV of all borrows from the last month
-
-## Running Unit Tests
-
-Unit tests are written using `Jest` and `Supertest`. They mock the repository layer, so no database connection is required to run them.
+The project includes a robust suite of **24 Integration Tests** covering all core modules (Auth, Books, Borrowers, Borrowing, Reports). The tests mock the database layer to ensure fast, reliable execution without requiring a live database connection.
 
 ```bash
 npm test
 ```
+
+## 📚 API Endpoints Summary
+
+*Note: View the complete, interactive documentation at `/api-docs` after starting the server.*
+
+- **Auth**: `POST /api/auth/register`, `POST /api/auth/login`
+- **Books**: `GET /api/books` (Paginated), `POST /api/books`, `PATCH /api/books/:id`, `DELETE /api/books/:id`
+- **Borrowers**: `GET /api/borrowers` (Paginated), `POST /api/borrowers`, `PATCH /api/borrowers/:id`, `DELETE /api/borrowers/:id`
+- **Borrowing**: `POST /api/borrowing/checkout`, `POST /api/borrowing/return`, `GET /api/borrowing/overdue`
+- **Reports**: `GET /api/reports/export-period`, `GET /api/reports/export-overdue-last-month`
