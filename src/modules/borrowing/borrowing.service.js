@@ -1,4 +1,5 @@
 const borrowingRepository = require('./borrowing.repository');
+const { BadRequestError } = require('../../utils/errors');
 
 class BorrowingService {
   async checkoutBook(data) {
@@ -7,10 +8,9 @@ class BorrowingService {
       return await borrowingRepository.checkout(book_id, borrower_id, due_date);
     } catch (error) {
       if (error.message.includes('not found') || error.message.includes('No available copies')) {
-        error.statusCode = 400;
+        throw new BadRequestError(error.message);
       } else if (error.code === '23503') { 
-        error.statusCode = 400;
-        error.message = 'Invalid book_id or borrower_id';
+        throw new BadRequestError('Invalid book_id or borrower_id');
       }
       throw error;
     }
@@ -22,7 +22,7 @@ class BorrowingService {
       return await borrowingRepository.returnBook(book_id, borrower_id);
     } catch (error) {
       if (error.message.includes('No active borrow record')) {
-        error.statusCode = 400;
+        throw new BadRequestError(error.message);
       }
       throw error;
     }

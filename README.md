@@ -1,4 +1,4 @@
-# Bosta Library Management System
+# Bookstore-API Library Management System
 
 This is a comprehensive RESTful API for a Library Management System built with Node.js, Express, and PostgreSQL. It fulfills all functional requirements, non-functional requirements (Clean Architecture, Performance via Indexing), and **all bonus optional tasks**.
 

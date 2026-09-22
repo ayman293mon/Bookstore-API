@@ -1,43 +1,53 @@
 const borrowerRepository = require('./borrower.repository');
 const db = require('../../config/db');
+const { NotFoundError, ConflictError, BadRequestError } = require('../../utils/errors');
+
 class BorrowerService {
-  async getAllBorrowers() {
-    return await borrowerRepository.findAll();
+  async getAllBorrowers(page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+    const { records, totalRecords } = await borrowerRepository.findAll(limit, offset);
+    
+    return {
+      data: records,
+      meta: {
+        totalRecords,
+        currentPage: page,
+        totalPages: Math.ceil(totalRecords / limit),
+        limit
+      }
+    };
   }
 
   async getBorrowerById(id) {
     const borrower = await borrowerRepository.findById(id);
     if (!borrower) {
-      const error = new Error('Borrower not found');
-      error.statusCode = 404;
-      throw error;
+      throw new NotFoundError('Borrower not found');
     }
     return borrower;
   }
 
   async createBorrower(data) {
-    const existing = await borrowerRepository.findByEmail(data.email);
-    if (existing) {
-      const error = new Error('A borrower with this email already exists');
-      error.statusCode = 409;
+    try {
+      return await borrowerRepository.create(data);
+    } catch (error) {
+      if (error.code === '23505') {
+        throw new ConflictError('A borrower with this email already exists');
+      }
       throw error;
     }
-    return await borrowerRepository.create(data);
   }
 
   async updateBorrower(id, data) {
     await this.getBorrowerById(id);
     
-    if (data.email) {
-      const existing = await borrowerRepository.findByEmail(data.email);
-      if (existing && existing.id !== parseInt(id)) {
-        const error = new Error('This email is already taken by another borrower');
-        error.statusCode = 409;
-        throw error;
+    try {
+      return await borrowerRepository.update(id, data);
+    } catch (error) {
+      if (error.code === '23505') {
+        throw new ConflictError('This email is already taken by another borrower');
       }
+      throw error;
     }
-
-    return await borrowerRepository.update(id, data);
   }
 
   async deleteBorrower(id) {
@@ -47,9 +57,7 @@ class BorrowerService {
     const activeBorrows = parseInt(borrowsResult.rows[0].count);
     
     if (activeBorrows > 0) {
-      const error = new Error('Cannot delete borrower with unreturned books');
-      error.statusCode = 400;
-      throw error;
+      throw new BadRequestError('Cannot delete borrower with unreturned books');
     }
 
     await borrowerRepository.delete(id);

@@ -3,8 +3,11 @@ const borrowerService = require('./borrower.service');
 class BorrowerController {
   getAllBorrowers = async (req, res, next) => {
     try {
-      const borrowers = await borrowerService.getAllBorrowers();
-      res.status(200).json({ success: true, data: borrowers });
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const result = await borrowerService.getAllBorrowers(page, limit);
+      res.status(200).json({ success: true, ...result });
     } catch (error) { next(error); }
   };
 

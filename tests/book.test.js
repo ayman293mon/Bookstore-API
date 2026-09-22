@@ -1,10 +1,12 @@
 const request = require('supertest');
 const app = require('../src/app');
 const bookRepository = require('../src/modules/books/book.repository');
+const jwt = require('jsonwebtoken');
 
 jest.mock('../src/modules/books/book.repository');
 
-const authHeader = 'Basic ' + Buffer.from('admin:password').toString('base64');
+const token = jwt.sign({ id: 1, role: 'admin' }, process.env.JWT_SECRET);
+const authHeader = `Bearer ${token}`;
 
 describe('Books API Endpoints', () => {
   beforeEach(() => {
@@ -17,7 +19,7 @@ describe('Books API Endpoints', () => {
         { id: 1, title: 'Book 1', author: 'Author 1' },
         { id: 2, title: 'Book 2', author: 'Author 2' }
       ];
-      bookRepository.findAll.mockResolvedValue(mockBooks);
+      bookRepository.findAll.mockResolvedValue({ records: mockBooks, totalRecords: 2 });
 
       const res = await request(app)
         .get('/api/books')
@@ -26,6 +28,7 @@ describe('Books API Endpoints', () => {
       expect(res.statusCode).toEqual(200);
       expect(res.body.success).toBeTruthy();
       expect(res.body.data.length).toBe(2);
+      expect(res.body.meta.totalRecords).toBe(2);
       expect(bookRepository.findAll).toHaveBeenCalledTimes(1);
     });
 
@@ -85,6 +88,10 @@ describe('Books API Endpoints', () => {
       };
 
       bookRepository.findByIsbn.mockResolvedValue({ id: 1 });
+      
+      // Simulate ConflictError from service layer
+      const { ConflictError } = require('../src/utils/errors');
+      bookRepository.create.mockRejectedValue(new ConflictError('A book with this ISBN already exists'));
 
       const res = await request(app)
         .post('/api/books')

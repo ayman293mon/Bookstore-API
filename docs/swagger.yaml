@@ -1,0 +1,349 @@
+openapi: 3.0.0
+info:
+  title: Bookstore & Library Management API
+  version: 1.0.0
+  description: A comprehensive RESTful API for managing books, borrowers, and the borrowing process.
+servers:
+  - url: http://localhost:3000
+    description: Development Server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: Authentication and User Management
+  - name: Books
+    description: Books Management
+  - name: Borrowers
+    description: Library Borrowers Management
+  - name: Borrowing
+    description: Book Checkout and Return Process
+  - name: Reports
+    description: CSV Data Exports
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '201':
+          description: Successfully registered
+        '400':
+          description: Validation error
+        '409':
+          description: Email already in use
+
+  /api/auth/login:
+    post:
+      summary: Log in to the application
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successfully logged in
+        '401':
+          description: Invalid credentials
+
+  /api/books:
+    get:
+      summary: Retrieve a list of books
+      tags: [Books]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: A paginated list of books
+    post:
+      summary: Add a new book
+      tags: [Books]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isbn:
+                  type: string
+                title:
+                  type: string
+                author:
+                  type: string
+                published_year:
+                  type: integer
+                quantity:
+                  type: integer
+                shelf_location:
+                  type: string
+      responses:
+        '201':
+          description: Book created successfully
+
+  /api/books/{id}:
+    get:
+      summary: Get a book by ID
+      tags: [Books]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A single book object
+    patch:
+      summary: Update an existing book
+      tags: [Books]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                quantity:
+                  type: integer
+      responses:
+        '200':
+          description: Book updated successfully
+    delete:
+      summary: Delete a book
+      tags: [Books]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book deleted successfully
+
+  /api/borrowers:
+    get:
+      summary: Retrieve a list of borrowers
+      tags: [Borrowers]
+      responses:
+        '200':
+          description: A paginated list of borrowers
+    post:
+      summary: Register a new borrower
+      tags: [Borrowers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Borrower created successfully
+
+  /api/borrowers/{id}:
+    get:
+      summary: Get a borrower by ID
+      tags: [Borrowers]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A single borrower object
+    patch:
+      summary: Update an existing borrower
+      tags: [Borrowers]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Borrower updated successfully
+    delete:
+      summary: Delete a borrower
+      tags: [Borrowers]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Borrower deleted successfully
+
+  /api/borrowing/checkout:
+    post:
+      summary: Checkout a book for a borrower
+      tags: [Borrowing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                book_id:
+                  type: integer
+                borrower_id:
+                  type: integer
+                due_date:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Successfully checked out
+
+  /api/borrowing/return:
+    post:
+      summary: Return a borrowed book
+      tags: [Borrowing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                book_id:
+                  type: integer
+                borrower_id:
+                  type: integer
+      responses:
+        '200':
+          description: Successfully returned
+
+  /api/borrowing/borrower/{borrowerId}:
+    get:
+      summary: Get all books currently checked out by a borrower
+      tags: [Borrowing]
+      parameters:
+        - in: path
+          name: borrowerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of borrowed books
+
+  /api/borrowing/overdue:
+    get:
+      summary: Get all currently overdue books
+      tags: [Borrowing]
+      responses:
+        '200':
+          description: List of overdue books
+
+  /api/reports/export-period:
+    get:
+      summary: Download CSV of borrows within a specific date range
+      tags: [Reports]
+      parameters:
+        - in: query
+          name: start_date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: end_date
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: CSV file download
+
+  /api/reports/export-overdue-last-month:
+    get:
+      summary: Download CSV of overdue books from the last month
+      tags: [Reports]
+      responses:
+        '200':
+          description: CSV file download
+
+  /api/reports/export-borrowing-last-month:
+    get:
+      summary: Download CSV of all borrows from the last month
+      tags: [Reports]
+      responses:
+        '200':
+          description: CSV file download

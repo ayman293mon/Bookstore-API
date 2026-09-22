@@ -1,9 +1,16 @@
 const db = require('../../config/db');
 
 class BorrowerRepository {
-  async findAll() {
-    const result = await db.query('SELECT * FROM borrowers ORDER BY registered_date DESC');
-    return result.rows;
+  async findAll(limit = 10, offset = 0) {
+    const countResult = await db.query('SELECT COUNT(*) FROM borrowers');
+    const totalRecords = parseInt(countResult.rows[0].count, 10);
+
+    const result = await db.query('SELECT * FROM borrowers ORDER BY registered_date DESC LIMIT $1 OFFSET $2', [limit, offset]);
+    
+    return {
+      records: result.rows,
+      totalRecords
+    };
   }
 
   async findById(id) {

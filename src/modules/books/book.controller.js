@@ -3,8 +3,11 @@ const bookService = require('./book.service');
 class BookController {
   getAllBooks = async (req, res, next) => {
     try {
-      const books = await bookService.getAllBooks(req.query.search);
-      res.status(200).json({ success: true, data: books });
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      
+      const result = await bookService.getAllBooks(req.query.search, page, limit);
+      res.status(200).json({ success: true, ...result });
     } catch (error) { next(error); }
   };
 

@@ -1,16 +1,26 @@
 const bookRepository = require('./book.repository');
+const { NotFoundError, ConflictError, BadRequestError } = require('../../utils/errors');
 
 class BookService {
-  async getAllBooks(search) {
-    return await bookRepository.findAll(search);
+  async getAllBooks(search, page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+    const { records, totalRecords } = await bookRepository.findAll(search, limit, offset);
+    
+    return {
+      data: records,
+      meta: {
+        totalRecords,
+        currentPage: page,
+        totalPages: Math.ceil(totalRecords / limit),
+        limit
+      }
+    };
   }
 
   async getBookById(id) {
     const book = await bookRepository.findById(id);
     if (!book) {
-      const error = new Error('Book not found');
-      error.statusCode = 404;
-      throw error;
+      throw new NotFoundError('Book not found');
     }
     return book;
   }
@@ -18,38 +28,40 @@ class BookService {
   async createBook(data) {
     const existing = await bookRepository.findByIsbn(data.isbn);
     if (existing) {
-      const error = new Error('A book with this ISBN already exists');
-      error.statusCode = 409;
+      throw new ConflictError('A book with this ISBN already exists');
+    }
+    try {
+      return await bookRepository.create(data);
+    } catch (error) {
+      if (error.code === '23505') {
+        throw new ConflictError('A book with this ISBN already exists');
+      }
       throw error;
     }
-    return await bookRepository.create(data);
   }
 
   async updateBook(id, data) {
-    const existing = await this.getBookById(id);
-
-    if (data.quantity !== undefined) {
-      const difference = data.quantity - existing.quantity;
-      const newAvailable = existing.available_quantity + difference;
-      
-      if (newAvailable < 0) {
-        const error = new Error('Cannot reduce quantity below currently borrowed copies');
-        error.statusCode = 400;
-        throw error;
+    try {
+      return await bookRepository.update(id, data);
+    } catch (err) {
+      if (err.message === 'NOT_FOUND') {
+        throw new NotFoundError('Book not found');
       }
-      data.available_quantity = newAvailable;
+      if (err.message === 'QUANTITY_ERROR') {
+        throw new BadRequestError('Cannot reduce quantity below currently borrowed copies');
+      }
+      if (err.code === '23505') {
+        throw new ConflictError('A book with this ISBN already exists');
+      }
+      throw err;
     }
-
-    return await bookRepository.update(id, data);
   }
 
   async deleteBook(id) {
     const book = await this.getBookById(id);
 
     if (book.quantity !== book.available_quantity) {
-      const error = new Error('Cannot delete book while copies are currently borrowed');
-      error.statusCode = 400;
-      throw error;
+      throw new BadRequestError('Cannot delete book while copies are currently borrowed');
     }
 
     await bookRepository.delete(id);
